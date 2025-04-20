@@ -1,104 +1,90 @@
 const router = require("express").Router();
 const authorize = require("../middleware/authorize");
 const pool = require("../db");
-// const multer = require('multer');
 
-// const upload = multer({ 
-//   limits: { fileSize: 50 * 1024 * 1024 }, // for 50MB
-// });
-
-//all Item Post and name
-router.get("/", authorize, async (req, res) => {
+// Get user profile info (username, email, zip_code)
+router.get("/", authorize, async (req, res) => {   // ✅ Add authorize here
   try {
-    if (!req.user) {
-      console.log(req.user)
-      return 
-    }
-    // get todo name and description for a specified user id
+    const userId = req.user;  // ✅ authorize middleware sets req.user
+
     const user = await pool.query(
-      "SELECT users.username, users.email, users.zip_code FROM users WHERE users.user_id = $1",
-      [req.user]
+      "SELECT username, email, zip_code FROM users WHERE id = $1",
+      [userId]
     );
-    // console.log(user.rows)
+
     res.json(user.rows);
   } catch (err) {
-    // console.log('bob')
-    console.error(err.message);
+    console.error("Error fetching user profile:", err.message);
     res.status(500).send("Server error");
   }
 });
 
-//create a item post, using authorize middleware
+// Create post (not used here - done in index.js)
+/*
 router.post("/create-post", authorize, async (req, res) => {
   try {
-    console.log(req.body);
-    const { title, uploadSuccess } = req.body;
+    const { title } = req.body;
     const file = req.file;
-
 
     if (!file) {
       return res.status(400).send("No files were uploaded.");
     }
 
-    const imageData = file.buffer; 
+    const imageData = file.buffer;
 
-      const newPost = await pool.query(
-          "INSERT INTO posts (title, attached_photo, user_id) VALUES ($1, $2, $3) RETURNING *",
-          [title, imageData, req.user.id]
-      );
-      
+    const newPost = await pool.query(
+      "INSERT INTO posts (title, attached_photo, user_id) VALUES ($1, $2, $3) RETURNING *",
+      [title, imageData, req.user]
+    );
 
-    // res.json(newTodo.rows[0]);
-    setUploadSuccess(true);
-    return res.json(uploadSuccess);
-
+    res.json(newPost.rows[0]);
   } catch (err) {
-    console.error(err.message);
-    return res.status(500).json({ error: "Server error", details: err.message });
+    console.error("Error creating post:", err.message);
+    res.status(500).send("Server error");
   }
-  
 });
+*/
 
-//update a todo
+// Update a post
 router.put("/update-post/:id", authorize, async (req, res) => {
   try {
     const { id } = req.params;
-    const { description } = req.body;
+    const { title } = req.body;
 
-    const { title, userId } = req.body;
-    const { name, data } = req.files.pic;
-
-    const updateTodo = await pool.query(
+    const updatePost = await pool.query(
       "UPDATE posts SET title = $1 WHERE post_id = $2 AND user_id = $3 RETURNING *",
-      [title, id, req.user.id]
+      [title, id, req.user]
     );
 
-    if (updateTodo.rows.length === 0) {
-      return res.json("This Post is not yours");
+    if (updatePost.rows.length === 0) {
+      return res.json("This post is not yours or does not exist.");
     }
 
-    res.json("Item Post was updated");
+    res.json("Post updated successfully.");
   } catch (err) {
-    console.error(err.message);
+    console.error("Error updating post:", err.message);
+    res.status(500).send("Server error");
   }
 });
 
-//delete a item post
+// Delete a post
 router.delete("/delete-post/:id", authorize, async (req, res) => {
   try {
     const { id } = req.params;
-    const deleteTodo = await pool.query(
+
+    const deletePost = await pool.query(
       "DELETE FROM posts WHERE post_id = $1 AND user_id = $2 RETURNING *",
-      [id, req.user.id]
+      [id, req.user]
     );
 
-    if (deleteTodo.rows.length === 0) {
-      return res.json("This Post is not yours");
+    if (deletePost.rows.length === 0) {
+      return res.json("This post is not yours or does not exist.");
     }
 
-    res.json("Post was deleted");
+    res.json("Post deleted successfully.");
   } catch (err) {
-    console.error(err.message);
+    console.error("Error deleting post:", err.message);
+    res.status(500).send("Server error");
   }
 });
 

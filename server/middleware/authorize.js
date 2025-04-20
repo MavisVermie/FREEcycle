@@ -1,25 +1,31 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-//middleware will continue if the token is inside the local storage
 module.exports = function (req, res, next) {
-  // Get token from header
-  const token = req.header("jwt_token");
+  const authHeader = req.header("Authorization");
 
-  // return if there is no token
-  if (!token) {
-    return res.status(403).json({ msg: "authorization denied" });
+  if (!authHeader) {
+    return res.status(403).json({ msg: "Authorization denied. No token found." });
   }
 
-  // Verify token
-  try {
-    //it is going to give the user id (user:{id: user.id})
-    const verify = jwt.verify(token, process.env.jwtSecret);
+  const token = authHeader.split(' ')[1];
 
-    req.user = verify.userId;
-    // console.log('asda', req.user)
+  if (!token) {
+    return res.status(403).json({ msg: "Authorization token missing." });
+  }
+
+  try {
+    const verify = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!verify.userId) {
+      console.error("Invalid token structure: userId not found");
+      return res.status(403).json({ msg: "Invalid token structure" });
+    }
+
+    req.user = verify.userId; // ✅ Correct!
     next();
   } catch (err) {
+    console.error("Authorization error:", err.message);
     res.status(401).json({ msg: "Token is not valid" });
   }
 };

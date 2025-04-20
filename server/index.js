@@ -1,15 +1,15 @@
+require('dotenv').config();
+console.log("JWT Secret loaded:", process.env.JWT_SECRET);
 const express = require("express");
 const app = express();
 const cors = require("cors");
 const pool = require("./db");
 const fileUpload = require("express-fileupload");
 const bcrypt = require("bcrypt");
-require('dotenv').config();
-require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const authorize = require("./middleware/authorize");
 
-const jwtSecret = process.env.jwtSecret; // Use environment variable
+const jwtSecret = process.env.JWT_SECRET; // Use environment variable
 
 // Middleware
 app.use(cors());
@@ -104,111 +104,99 @@ app.put("/update-credentials", authorize, async (req, res) => {
 
 
 // Registration
+// Registration Route
 app.post("/authentication/registration", async (req, res) => {
-    try {
-        const { username, password, email, zip_code } = req.body;
+  try {
+    const { username, password, email, zip_code } = req.body;
 
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Insert user into the database
-        const newUser = await pool.query(
-            "INSERT INTO users (username, password, email, zip_code) VALUES ($1, $2, $3, $4) RETURNING *",
-            [username, hashedPassword, email, zip_code]
-        );
+    const { rows } = await pool.query(
+      "INSERT INTO users (username, password, email, zip_code) VALUES ($1, $2, $3, $4) RETURNING id",
+      [username, hashedPassword, email, zip_code]
+    );
 
-        // Retrieve user_id based on username
-        const { rows } = await pool.query(
-            "SELECT user_id FROM users WHERE username = $1",
-            [username]
-        );
+    const userId = rows[0].id;
 
-        // Ensure a user_id is found
-        if (rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
+    const jwtToken = generateJWTToken(userId);
 
-        const userId = rows[0].user_id;
+    res.json({ jwtToken });
 
-        // Generate JWT token with user_id
-        const jwtToken = generateJWTToken(userId);
-
-        // Log the token payload for testing
-        const decoded = jwt.verify(jwtToken, jwtSecret);
-        console.log("Token payload after registration:", decoded);
-
-        res.json({ jwtToken });
-
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send("Server Error");
-    }
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
 });
+
 
 
 //Create post
 app.post("/create_post", async (req, res) => {
-    try {
-        console.log("Received request to create post:", req.body);
+  try {
+    console.log("Received request to create post:", req.body);
 
-        if (!req.files || !req.files.pic || !req.body.title) {
-            return res.status(400).send("Title and Image are required.");
-        }
-
-        const { title } = req.body;
-        const { name, data } = req.files.pic;
-
-        // Verify JWT token and extract user_id
-        const token = req.headers.authorization.split(" ")[1];
-        const decoded = jwt.verify(token, jwtSecret);
-        const userId = decoded.userId;
-
-        // Log the extracted user_id for testing
-        console.log("Extracted user_id:", userId);
-
-        // Insert post into database with user_id
-        const newPost = await pool.query(
-            "INSERT INTO posts (title, attached_photo, user_id) VALUES ($1, $2, $3) RETURNING *",
-            [title, data, userId]
-        );
-
-        res.json("Upload Success");
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send("Server Error");
+    if (!req.files || !req.files.pic || !req.body.title) {
+      return res.status(400).send("Title and Image are required.");
     }
+
+    const { title } = req.body;
+    const { data } = req.files.pic;
+
+    // ✅ Correct way to read jwt_token from headers
+    const token = req.header("jwt_token");
+    const decoded = jwt.verify(token, jwtSecret);
+    const userId = decoded.userId;
+
+    console.log("Extracted user_id:", userId);
+
+    const newPost = await pool.query(
+      "INSERT INTO posts (title, attached_photo, user_id) VALUES ($1, $2, $3) RETURNING *",
+      [title, data, userId]
+    );
+
+    res.json("Upload Success");
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
 });
 
 
 
-// Backend Route to Fetch All Posts with Attached Photos
 app.get('/posts', async (req, res) => {
   try {
-    // Query the database to retrieve all posts with their attached photos
-    const result = await pool.query('SELECT * FROM posts LEFT JOIN users ON posts.user_id = users.user_id');
+    const result = await pool.query(`
+      SELECT 
+        posts.post_id, 
+        posts.title, 
+        posts.attached_photo, 
+        posts.user_id,
+        users.email,
+        users.zip_code
+      FROM posts
+      LEFT JOIN users ON posts.user_id = users.id
+    `);
 
-    // Check if any posts were found
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'No posts found' });
     }
 
-    // Map over the posts and extract the necessary data
     const postsWithPhotos = result.rows.map(post => ({
       post_id: post.post_id,
-      post_zip: post.zip_code,
       title: post.title,
       email: post.email,
       userId: post.user_id,
-      attached_photo: post.attached_photo.toString('base64') // Convert BYTEA to base64 string
+      zip_code: post.zip_code, // ✅ Now zip_code will be correctly attached!
+      attached_photo: post.attached_photo.toString('base64')
     }));
 
-    // Send the posts with attached photos as the response
     res.json(postsWithPhotos);
   } catch (error) {
     console.error('Error fetching posts:', error.message);
     res.status(500).json({ message: 'Server Error' });
   }
 });
+
 
 
 // Backend Route to Fetch Posts for a Specific User

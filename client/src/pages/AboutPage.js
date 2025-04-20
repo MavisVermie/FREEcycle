@@ -4,26 +4,50 @@ import freecyclelogo from '../assets/logo2.png'
 
 const people = [
   {
-    name: 'Jason Ang',
+    name: 'Mavis',
     role: 'Scrum Master, Full Stack Developer',
     imageUrl:
       '',
   },
   {
-    name: 'Willy Sobczak',
+    name: 'Mavis',
     role: 'Product Manager, Full Stack Developer',
     imageUrl:
       ''
   },
   {
-    name: 'Endrit Berberi',
-    role: 'Full Stack Developer',
+    name: 'Mavis',
+    role: 'The best at everything',
     imageUrl:
       '',
   },
   {
-    name: 'Abraham Stefanos',
-    role: 'Full Stack Developer',
+    name: 'Mavis',
+    role: 'The most important person',
+    imageUrl:
+      '',
+  },
+  {
+    name: 'Mavis',
+    role: 'The best person ever',
+    imageUrl:
+      '',
+  },
+  {
+    name: 'Marah Yousef',
+    role: 'Front End Developer',
+    imageUrl:
+      '',
+  },
+  {
+    name: 'Manar Abuirshaid',
+    role: 'Front End Developer',
+    imageUrl:
+      '',
+  },
+  {
+    name: 'Bashar Shqoor',
+    role: 'Back End Developer',
     imageUrl:
       '',
   },
@@ -59,7 +83,7 @@ export default function AboutPage() {
             <div>
               <h2 className="text-4xl font-extrabold text-green-600">About Us</h2>
               <p className="mt-4 text-lg leading-7 text-gray-600">
-                FOR any private individual, business, or other institution/entity WHO would like to provide or receive non-monetary donations, THE FREEcycle is a location-specific web-based social platform THAT allows users to create an account to post their own donations or message the author of other posts to receive items free of charge. UNLIKE other legacy sales-based platforms, OUR product is built to show users posts of items they didn’t know they needed with a robust user network while storing no monetary transactions.
+                The best website ever by MAVIS.
               </p>
             </div>
             <div className="flex justify-center md:justify-end">

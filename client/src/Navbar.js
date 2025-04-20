@@ -25,18 +25,21 @@ export default function Navbar({ setAuth, isAuthenticated, checkAuthenticated })
 
   const getProfile = async () => {
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch("http://localhost:5000/Posting/", {
         method: "GET",
-        headers: { jwt_token: localStorage.token },
+        headers: { 
+          "Authorization": `Bearer ${token}`
+        },
       });
-
+  
       const parseData = await res.json();
-
-      setName(parseData[0].username); // name is the first array item
+      setName(parseData[0].username); // now safe
     } catch (err) {
       console.error(err.message);
     }
   };
+  
 
   
   const logout = async (e) => {
@@ -51,7 +54,6 @@ export default function Navbar({ setAuth, isAuthenticated, checkAuthenticated })
   };
 
   useEffect(() => {
-    checkAuthenticated();
     getProfile();
   }, []);
 
